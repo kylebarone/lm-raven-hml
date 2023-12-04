@@ -10,9 +10,9 @@ def load_data(path):
     return data
 
 
-def evaluate(path):
-    b = int(path.split("_")[-2][-1])
+def evaluate(path, b):
     if b:
+        b = int(path.split("_")[-2][-1])
         ret = {"master": [0, 0], "ensemble": [0, 0]}
         data = load_data(path)
         for comp_dicts in data.values():
@@ -58,8 +58,9 @@ def evaluate(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--path")
+    parser.add_argument("-b", type=int, default=0)
     args = parser.parse_args()
-    print(evaluate(args.path))
+    print(evaluate(args.path, args.b))
     return
 
 
