@@ -12,6 +12,7 @@ import torch
 from torch.nn.functional import log_softmax
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import numpy as np
 
 
 class Shape:
@@ -345,11 +346,19 @@ A:(4,0.3,0)\n'''
         questions = [line.strip() for line in questions]
         questions = "\n".join(questions)
         self.context = self.prefix + rpm.context
-        prompt = one_shot_prefix + question_prefix + questions + '\nChoices:' + ','.join(rpm.choices)
+
+        # shuffle choices
+        choices = rpm.choices[:]
+        np.random.shuffle(choices)
+        prompt = one_shot_prefix + question_prefix + questions + '\nChoices:' + ','.join(choices)
         if i != None:
             print(f"Q{i}")
         print(prompt)
+
+        # call gpt to get answer
         res = self._gpt_complete(prompt)
+        
+        print("Answer is: ", rpm.choices[0])
         print(res == rpm.choices[0])
         print("----")
         return 1 if res == rpm.choices[0].strip() else 0
@@ -364,10 +373,9 @@ A:(4,0.3,0)\n'''
                                             frequency_penalty=0,
                                             presence_penalty=0,
                                             echo=True)
-        if response["choices"][0]["text"][-1] == '.':
-            gpt_choice = gpt_choice = response["choices"][0]["text"][-11:-1].strip()
-        else:
-            gpt_choice =response["choices"][0]["text"][-10:].strip()
+        right_most_parenthesis_index = response["choices"][0]["text"].rfind('(')
+        end_index = response["choices"][0]["text"].rfind(')')
+        gpt_choice = response["choices"][0]["text"][right_most_parenthesis_index:end_index+1].strip()
         print("GPT choice: ", gpt_choice)
         return gpt_choice
 
