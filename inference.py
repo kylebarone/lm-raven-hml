@@ -346,7 +346,7 @@ A:(4,0.3,0)\n'''
         questions = [line.strip() for line in questions]
         questions = "\n".join(questions)
         self.context = self.prefix + rpm.context
-        prompt = one_shot_prefix + question_prefix + questions + '\nChoices:' + ','.join(rpm.choices)
+        prompt =  question_prefix + questions + '\nChoices:' + ','.join(rpm.choices)
         if i != None:
             print(f"Q{i}")
         # print(prompt)
@@ -381,9 +381,9 @@ A:(4,0.3,0)\n'''
                   {"role": "user", "content": prompt}]
         )
         gpt_response = response.choices[0].message.content.strip()
-        # print("!!!!! Prompt: ", prompt)
-        # print("\n")
+        
         if self.flag:
+            print("!!!!! Prompt: ", prompt)
             print("!!!!!!! GPT response: ", gpt_response)
             self.flag = False
         if gpt_response[-1] == '.':
