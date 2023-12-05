@@ -230,6 +230,7 @@ class Solver:
         self.context = None
         self.choice_scores = {}
         self.openai_cliet=openai_client
+        self.flag = True
 
     def __call__(self, config, load_dir, save_dir, b=1, n=3, add_angle=False, subset_dir="subset.json", experiment_name="", print_prompt=False, gpt_combine_choices=False):
         with open("{}/{}.json".format(load_dir,config), "r") as f:
@@ -327,7 +328,7 @@ Q: row1:(6,0.6,50),(5,0.6,70),(4,0.6,90)
 row2:(6,0.4,0),(5,0.4,20),(4,0.4,40)
 row3:(6,0.5,20),(5,0.5,40),
 Choices:(4,0.5,0),(4,0.5,60),(6,0.5,60),(3,0.5,60),(5,0.5,60),(4,0.5,90),(7,0.5,60)
-B:(4,0.5,60)\n'''
+A:(4,0.5,60)\n'''
         cot_prompting_prefix = '''Solve the Raven Progressive Matrices problem. For example,
 Q: row1:(6,0.6,50),(5,0.6,70),(4,0.6,90)
 row2:(6,0.4,0),(5,0.4,20),(4,0.4,40)
@@ -350,6 +351,7 @@ A:(4,0.3,0)\n'''
             print(f"Q{i}")
         # print(prompt)
         res = self._chatgpt_complete(prompt)
+        print("RPM answer", rpm.choices[0])
         print(res == rpm.choices[0])
         print("----")
         return 1 if res == rpm.choices[0].strip() else 0
@@ -374,18 +376,24 @@ A:(4,0.3,0)\n'''
     def _chatgpt_complete(self, prompt):
         ret = {}
         response = self.openai_cliet.chat.completions.create(
-        model="gpt-4-1106-preview",
-        messages=[{"role": "system", "content": "You are going to be solving Raven's progressive matrices. Presented with a digit matrix, choose the answer that matches the established pattern. The last tokens outputted should be your answer choice followed by a period."}, 
+        model="gpt-3.5-turbo-1106",
+        messages=[{"role": "system", "content": "You are going to be solving Raven's progressive matrices. Presented with a digit matrix, choose the answer that matches the established pattern. The last tokens outputted should be your answer choice (x,y,z) followed by a `.`"}, 
                   {"role": "user", "content": prompt}]
         )
-        gpt_response = response.choices[0].message.content
+        gpt_response = response.choices[0].message.content.strip()
         # print("!!!!! Prompt: ", prompt)
         # print("\n")
-        # print("!!!!!!! GPT response: ", gpt_response)
+        if self.flag:
+            print("!!!!!!! GPT response: ", gpt_response)
+            self.flag = False
         if gpt_response[-1] == '.':
-          gpt_choice = gpt_response[-11:-1].strip()
+          gpt_choice = gpt_response.replace(" ","")[-11:-1]
+          if gpt_choice[-3] == ",":
+              gpt_choice = gpt_response.replace(" ","")[-10:-1]
         else:
-          gpt_choice = gpt_response[-10:].strip()
+          gpt_choice = gpt_response.replace(" ", "")[-10:]
+          if gpt_choice[-3] == ",":
+              gpt_choice = gpt_response.replace(" ","")[-9:]
 
         print("GPT choice: ", gpt_choice)
         return gpt_choice
