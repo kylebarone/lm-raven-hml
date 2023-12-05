@@ -346,7 +346,7 @@ A:(4,0.3,0)\n'''
         questions = [line.strip() for line in questions]
         questions = "\n".join(questions)
         self.context = self.prefix + rpm.context
-        prompt =  question_prefix + questions + '\nChoices:' + ','.join(rpm.choices)
+        prompt =  one_shot_prefix+ two_shot_prefix+question_prefix + questions + '\nChoices:' + ','.join(rpm.choices)
         if i != None:
             print(f"Q{i}")
         # print(prompt)
