@@ -221,7 +221,7 @@ class RPM:
 
 
 class Solver:
-    def __init__(self, model_name, model=None, tokenizer=None, prefix="", openai_cliet=None):
+    def __init__(self, model_name, model=None, tokenizer=None, prefix="", openai_client=None):
         self.model_name = model_name
         self.model = model
         self.tokenizer = tokenizer
@@ -229,7 +229,7 @@ class Solver:
         self.prefix = prefix
         self.context = None
         self.choice_scores = {}
-        self.openai_cliet=openai_cliet
+        self.openai_cliet=openai_client
 
     def __call__(self, config, load_dir, save_dir, b=1, n=3, add_angle=False, subset_dir="subset.json", experiment_name="", print_prompt=False, gpt_combine_choices=False):
         with open("{}/{}.json".format(load_dir,config), "r") as f:
