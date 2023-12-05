@@ -316,8 +316,6 @@ class Solver:
     def gpt_complete_combine_choices(self, subset, samples, config, n=3, add_angle=False, print_prompt=False):
         correct = 0
         for i in tqdm(subset[:50]):
-            if i > 5:
-                self.flag = False
             sample = samples[str(i)]
             correct += self.prompting(sample, config, n=n, add_angle=add_angle, print_prompt=print_prompt, i=str(i))
                
@@ -385,8 +383,8 @@ A:(4,0.3,0)\n'''
         gpt_response = response.choices[0].message.content.strip()
         
         if self.flag:
-            print("!! Prompt: ", prompt, "!!")
-            print("!!! GPT response: ", gpt_response, "!!")
+            print("!! Prompt: ", prompt, "!!!")
+            print("!!! GPT response: ", gpt_response, "!!!")
         if gpt_response[-1] == '.':
           gpt_choice = gpt_response.replace(" ","")[-11:-1]
           if gpt_choice[-3] == ",":
