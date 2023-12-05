@@ -378,7 +378,7 @@ A:(4,0.3,0)\n'''
         messages=[{"role": "system", "content": "You are going to be solving Raven's progressive matrices. Presented with a digit matrix, choose the answer that matches the established pattern."}, 
                   {"role": "user", "content": prompt}]
         )
-        gpt_response = response['choices'][0]['message']['content']
+        gpt_response = response.choices[0]['message']['content']
         print("prompt: ", prompt)
         print("GPT response: ", gpt_response)
         if gpt_response[-1] == '.':
