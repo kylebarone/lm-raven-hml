@@ -221,7 +221,7 @@ class RPM:
 
 
 class Solver:
-    def __init__(self, model_name, model=None, tokenizer=None, prefix=""):
+    def __init__(self, model_name, model=None, tokenizer=None, prefix="", openai_cliet=None):
         self.model_name = model_name
         self.model = model
         self.tokenizer = tokenizer
@@ -229,6 +229,7 @@ class Solver:
         self.prefix = prefix
         self.context = None
         self.choice_scores = {}
+        self.openai_cliet=openai_cliet
 
     def __call__(self, config, load_dir, save_dir, b=1, n=3, add_angle=False, subset_dir="subset.json", experiment_name="", print_prompt=False, gpt_combine_choices=False):
         with open("{}/{}.json".format(load_dir,config), "r") as f:
@@ -372,7 +373,7 @@ A:(4,0.3,0)\n'''
     
     def _chatgpt_complete(self, prompt):
         ret = {}
-        response = openai.ChatCompletion.create(
+        response = self.openai_cliet.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": "You are going to be solving Raven's progressive matrices. Presented with a digit matrix, choose the answer that matches the established pattern."}, 
                   {"role": "user", "content": prompt}]
@@ -442,7 +443,7 @@ def main():
     args = parser.parse_args()
     model, tokenizer = None, None
     if args.model_name == "gpt-3":
-        openai.api_key = args.api_key
+        client = openai.OpenAI(api_key=args.api_key)
     if args.model_name[:3] == "opt":
         # free_in_GB = int(torch.mps.mem_get_info()[0]/1024**3)
         # max_memory = f'{free_in_GB-2}GB'
@@ -450,19 +451,6 @@ def main():
         model = AutoModelForCausalLM.from_pretrained("facebook/"+args.model_name,
                                                      device_map='auto', offload_folder="offload", torch_dtype=torch.float16)
         tokenizer = AutoTokenizer.from_pretrained("facebook/"+args.model_name,
-                                                  use_fast=False)
-    if args.model_name == "mistral":
-        torch.cuda.empty_cache()
-        free_in_GB = int(torch.cuda.mem_get_info()[0]/1024**3)
-        max_memory = f'{free_in_GB-2}GB'
-        n_gpus = torch.cuda.device_count()
-        max_memory = {i: max_memory for i in range(n_gpus)}
-        print(max_memory)
-        model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1",
-                                                     device_map='auto',
-                                                     load_in_8bit=True,
-                                                     max_memory=max_memory)
-        tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1",
                                                   use_fast=False)
     
     if args.prompt_dir:
@@ -474,9 +462,8 @@ def main():
             print(f"Error reading from prompt_dir {args.prompt_dir}: {e}")
             prefix = "let's think step by step. "  # default prefix
     else:
-        prefix = "let's think step by step. "  # default prefix
-    prefix = prefix + "let's think step by step if the following matches the established patterns.\n New Example -> "
-    s = Solver(args.model_name, model=model, tokenizer=tokenizer, prefix=prefix)
+        prefix = ""  # default prefix
+    s = Solver(args.model_name, model=model, tokenizer=tokenizer, prefix=prefix, openai_client=client)
     s(args.config, args.load_dir, args.save_dir, b=args.b, n=args.n, add_angle=args.add_angle, subset_dir=args.subset_dir, experiment_name=args.experiment_name, print_prompt=args.print_prompt, gpt_combine_choices=args.is_gpt_combine_choices)
     return
 
