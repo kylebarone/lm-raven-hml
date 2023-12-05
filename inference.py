@@ -313,12 +313,11 @@ class Solver:
     
     def gpt_complete_combine_choices(self, subset, samples, config, n=3, add_angle=False, print_prompt=False):
         correct = 0
-        end = 50
-        for i in tqdm(subset[:end]):
+        for i in tqdm(subset):
             sample = samples[str(i)]
             correct += self.prompting(sample, config, n=n, add_angle=add_angle, print_prompt=print_prompt, i=str(i))
                
-        print("Accuracy: ", correct/len(subset[:end]))
+        print("Accuracy: ", correct/len(subset))
 
     def prompting(self, sample, config, n=3, add_angle=False,  print_prompt=False, i=None):
         question_prefix = "Select the correct choice for this problem:\n"
@@ -349,7 +348,7 @@ A:(4,0.3,0)\n'''
         if i != None:
             print(f"Q{i}")
         print(prompt)
-        res = self._gpt_complete(prompt)
+        res = self._chatgpt_complete(prompt)
         print(res == rpm.choices[0])
         print("----")
         return 1 if res == rpm.choices[0].strip() else 0
@@ -368,6 +367,24 @@ A:(4,0.3,0)\n'''
             gpt_choice = gpt_choice = response["choices"][0]["text"][-11:-1].strip()
         else:
             gpt_choice =response["choices"][0]["text"][-10:].strip()
+        print("GPT choice: ", gpt_choice)
+        return gpt_choice
+    
+    def _chatgpt_complete(self, prompt):
+        ret = {}
+        response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": "You are going to be solving Raven's progressive matrices. Presented with a digit matrix, choose the answer that matches the established pattern."}, 
+                  {"role": "user", "content": prompt}]
+        )
+        gpt_response = response['choices'][0]['message']['content']
+        print("prompt: ", prompt)
+        print("GPT response: ", gpt_response)
+        if gpt_response[-1] == '.':
+          gpt_choice = gpt_response[-11:-1].strip()
+        else:
+          gpt_choice = gpt_response[-10:].strip()
+
         print("GPT choice: ", gpt_choice)
         return gpt_choice
 
@@ -402,18 +419,6 @@ A:(4,0.3,0)\n'''
         i = len(self.tokenizer(self.context, return_tensors="pt").input_ids[0]) - 2
         return {"tokens": tokens[i:], "token_logprobs": token_logprobs[i:]}
     
-    def _mistral(self, prompt):
-        ret = {}
-        input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
-        tokens = self.tokenizer.convert_ids_to_tokens(input_ids[0][1:])
-        token_logprobs = []
-        logits = self.model(input_ids).logits
-        all_tokens_logprobs = log_softmax(logits.double(), dim=2)
-        for k in range(1, input_ids.shape[1]):
-            token_logprobs.append(all_tokens_logprobs[:,k-1,input_ids[0,k]])
-        token_logprobs = [lp.detach().numpy()[0] for lp in token_logprobs]
-        i = len(self.tokenizer(self.context, return_tensors="pt").input_ids[0]) - 2
-        return {"tokens": tokens[i:], "token_logprobs": token_logprobs[i:]}
     
 
 
@@ -458,21 +463,6 @@ def main():
                                                      load_in_8bit=True,
                                                      max_memory=max_memory)
         tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1",
-                                                  use_fast=False)
-                                                  
-        
-    if args.model_name == "mistral_instruct":
-        torch.cuda.empty_cache()
-        free_in_GB = int(torch.cuda.mem_get_info()[0]/1024**3)
-        max_memory = f'{free_in_GB-2}GB'
-        n_gpus = torch.cuda.device_count()
-        max_memory = {i: max_memory for i in range(n_gpus)}
-        print(max_memory)
-        model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1",
-                                                     device_map='auto',
-                                                     load_in_8bit=True,
-                                                     max_memory=max_memory)
-        tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1",
                                                   use_fast=False)
     
     if args.prompt_dir:
